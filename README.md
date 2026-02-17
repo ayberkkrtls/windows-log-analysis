@@ -15,3 +15,8 @@ To understand the footprints (Event IDs) left by attackers on a system and devel
 - [x] **Logon Types** Reference Guide
 - [x] **Scenario**: Brute Force Detection Logic
 
+### Phase 2: Persistence & Evasion (In Progress)
+- [ ] **4698**: A scheduled task was created (Persistence)
+- [ ] **7045**: A new service was installed in the system (Persistence)
+- [ ] **1102**: The audit log was cleared (Anti-Forensics/Evasion)
+- [ ] **Scenario**: Detecting Lateral Movement via RDP
