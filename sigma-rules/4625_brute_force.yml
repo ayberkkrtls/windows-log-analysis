@@ -1,0 +1,71 @@
+title: Potential Brute Force Attack via Multiple Failed Logons (4625)
+id: 8f2c1e3a-6b4d-4a9e-9c2f-1a2b3c4d5e6f
+status: experimental
+description: |
+  Detects a high volume of failed logon attempts (Event ID 4625) from a
+  single source IP within a short time window. This is the primary signal
+  of password-guessing / brute-force attacks.
+references:
+    - https://github.com/ayberkkrtls/windows-log-analysis/blob/main/logs/4625-failed-logon.md
+author: ayberkkrtls (windows-log-analysis)
+date: 2026/07/16
+tags:
+    - attack.credential_access
+    - attack.t1110
+    - attack.t1110.001
+    - attack.t1110.003
+logsource:
+    product: windows
+    service: security
+    definition: 'Requires Windows Security auditing for Logon/Logoff to be enabled.'
+detection:
+    selection:
+        EventID: 4625
+    filter_known_service_accounts:
+        TargetUserName|startswith:
+            - 'svc_'
+            - 'HealthMailbox'
+    timeframe: 60s
+    condition: selection and not filter_known_service_accounts | count(TargetUserName) by IpAddress > 10
+fields:
+    - TargetUserName
+    - IpAddress
+    - LogonType
+    - Status
+    - SubStatus
+falsepositives:
+    - Misconfigured services or scheduled tasks retrying with stale credentials.
+    - Users who genuinely forgot their password and retried manually.
+level: high
+---
+title: Failed Logon Against Non-Existent Account (Account Enumeration)
+id: 2b7a9d10-4e5f-4c8a-9b1d-7e8f9a0b1c2d
+status: experimental
+description: |
+  Detects Event ID 4625 with Sub Status 0xC0000064, which indicates the
+  target account does not exist. Repeated occurrences suggest an attacker
+  is enumerating valid usernames prior to a brute-force / password-spray attack.
+references:
+    - https://github.com/ayberkkrtls/windows-log-analysis/blob/main/logs/4625-failed-logon.md
+author: ayberkkrtls (windows-log-analysis)
+date: 2026/07/16
+tags:
+    - attack.reconnaissance
+    - attack.t1589.001
+    - attack.t1087
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4625
+        SubStatus: '0xC0000064'
+    timeframe: 5m
+    condition: selection | count() by IpAddress > 5
+fields:
+    - TargetUserName
+    - IpAddress
+falsepositives:
+    - Typos by legitimate users.
+    - Vulnerability scanners performing authenticated checks.
+level: medium
