@@ -1,0 +1,69 @@
+title: Special Privileges Assigned to Non-Administrative Account (4672)
+id: 8b9c0d1e-2f3a-44b5-8c6d-7e8f9a0b1c2d
+status: experimental
+description: |
+  Detects Event ID 4672 (special/admin privileges assigned at logon) for an
+  account that is not present in a maintained watchlist of known administrative
+  accounts/service accounts. Populate the `admin_watchlist` list with your
+  environment's authorized privileged accounts before deploying.
+references:
+    - https://github.com/ayberkkrtls/windows-log-analysis/blob/main/logs/4672-special-privileges.md
+author: ayberkkrtls (windows-log-analysis)
+date: 2026/07/16
+tags:
+    - attack.privilege_escalation
+    - attack.t1078
+    - attack.t1068
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4672
+    admin_watchlist:
+        SubjectUserName:
+            - 'Administrator'
+            - 'svc_backup'
+            - 'svc_sql'
+            # Add your environment's known privileged/service accounts here.
+    condition: selection and not admin_watchlist
+fields:
+    - SubjectUserName
+    - PrivilegeList
+    - LogonId
+falsepositives:
+    - Newly onboarded administrators not yet added to the watchlist.
+    - Break-glass emergency access accounts.
+level: medium
+---
+title: High-Frequency Privileged Logons From Single Workstation (4672)
+id: 9c0d1e2f-3a4b-45c6-8d7e-8f9a0b1c2d3e
+status: experimental
+description: |
+  Detects an unusually high number of Event ID 4672 occurrences from the
+  same workstation/source within a short window, which may indicate
+  automated credential testing or lateral movement using stolen privileged
+  credentials.
+references:
+    - https://github.com/ayberkkrtls/windows-log-analysis/blob/main/logs/4672-special-privileges.md
+author: ayberkkrtls (windows-log-analysis)
+date: 2026/07/16
+tags:
+    - attack.privilege_escalation
+    - attack.lateral_movement
+    - attack.t1078
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4672
+    timeframe: 5m
+    condition: selection | count() by WorkstationName > 5
+fields:
+    - SubjectUserName
+    - WorkstationName
+    - LogonId
+falsepositives:
+    - Jump-box / RDP gateway hosts used by many admins throughout the day.
+level: medium
