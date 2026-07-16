@@ -1,0 +1,69 @@
+title: User Account Created Outside Business Hours or by Unusual Subject (4720)
+id: 6f7a8b9c-0d1e-42f3-9a4b-5c6d7e8f9a0b
+status: experimental
+description: |
+  Detects Event ID 4720 (new user account created) occurring outside normal
+  business hours or on sensitive hosts such as Domain Controllers. Should be
+  correlated with a following 4732 (added to privileged group) to catch
+  the classic "create backdoor account, then privilege it" pattern.
+references:
+    - https://github.com/ayberkkrtls/windows-log-analysis/blob/main/logs/4720-user-creation.md
+author: ayberkkrtls (windows-log-analysis)
+date: 2026/07/16
+tags:
+    - attack.persistence
+    - attack.t1136.001
+    - attack.t1136.002
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4720
+    condition: selection
+    # Business-hours / authorized-admin-list filtering should be applied at
+    # the SIEM layer, since Sigma alone cannot express "not in {authorized_admins}"
+    # without a lookup list. See Note below.
+fields:
+    - TargetUserName
+    - SubjectUserName
+    - EventTime
+falsepositives:
+    - Legitimate onboarding performed by HR/IT automation outside 9-5.
+    - Bulk account provisioning during scheduled maintenance windows.
+level: medium
+---
+title: Correlation - New User Immediately Added to Privileged Group
+id: 7a8b9c0d-1e2f-43a4-9b5c-6d7e8f9a0b1c
+status: experimental
+description: |
+  Detects the sequence of Event ID 4720 (user created) followed within a
+  short window by Event ID 4732 (member added to a security-enabled local
+  group) for the same TargetUserName. This is the signature pattern for
+  planting a persistent backdoor administrator account.
+references:
+    - https://github.com/ayberkkrtls/windows-log-analysis/blob/main/logs/4720-user-creation.md
+author: ayberkkrtls (windows-log-analysis)
+date: 2026/07/16
+tags:
+    - attack.persistence
+    - attack.privilege_escalation
+    - attack.t1136.001
+    - attack.t1098
+logsource:
+    product: windows
+    service: security
+detection:
+    creation:
+        EventID: 4720
+    privilege_add:
+        EventID: 4732
+    timeframe: 10m
+    condition: creation | correlate(TargetUserName) with privilege_add
+fields:
+    - TargetUserName
+    - SubjectUserName
+    - GroupName
+falsepositives:
+    - Standard IT workflow for provisioning new admins (should still be reviewed).
+level: high
