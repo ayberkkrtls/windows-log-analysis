@@ -1,0 +1,44 @@
+title: Suspicious Scheduled Task Creation for Persistence (4698)
+id: 3c4d5e6f-7a8b-49c0-8d1e-2f3a4b5c6d7e
+status: experimental
+description: |
+  Detects creation of a new scheduled task (Event ID 4698) whose Command
+  field references common living-off-the-land binaries, encoded PowerShell,
+  or execution from a suspicious/writable directory. Attackers commonly
+  abuse Task Scheduler for persistence.
+references:
+    - https://github.com/ayberkkrtls/windows-log-analysis/blob/main/logs/4698-scheduled-task-created.md
+author: ayberkkrtls (windows-log-analysis)
+date: 2026/07/16
+tags:
+    - attack.persistence
+    - attack.privilege_escalation
+    - attack.t1053.005
+logsource:
+    product: windows
+    service: security
+detection:
+    selection:
+        EventID: 4698
+    suspicious_command:
+        Command|contains:
+            - 'powershell -enc'
+            - 'powershell.exe -e '
+            - 'certutil'
+            - 'bitsadmin'
+            - 'mshta'
+            - 'regsvr32'
+    suspicious_path:
+        Command|contains:
+            - 'C:\Users\Public\'
+            - '\AppData\Local\Temp\'
+            - '\ProgramData\'
+    condition: selection and (suspicious_command or suspicious_path)
+fields:
+    - TaskName
+    - Command
+    - SubjectUserName
+falsepositives:
+    - Legitimate admin/maintenance scripts stored in ProgramData.
+    - Software installers that register update tasks via encoded PowerShell.
+level: high
