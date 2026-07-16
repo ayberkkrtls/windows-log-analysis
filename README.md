@@ -22,7 +22,9 @@ A hands-on study repository for mastering **Windows Event Logs** — the corners
 ```
 windows-log-analysis/
 ├── logs/               # Event ID documentation (description, fields, detection logic)
-└── scenarios/          # End-to-end attack scenarios with detection chains
+├── scenarios/          # End-to-end attack scenarios with detection chains
+├── sigma-rules/        # Machine-readable Sigma detections for each documented Event ID
+└── scripts/            # Synthetic test-log generator for validating detections
 ```
 
 ---
@@ -64,6 +66,23 @@ windows-log-analysis/
 | **4769** | A Kerberos service ticket was requested |
 | **4776** | The domain controller attempted to validate credentials (NTLM) |
 | **Scenario** | Pass-the-Hash / Pass-the-Ticket Attack Detection |
+
+---
+
+## 🛡️ Sigma Detections
+
+Each documented Event ID from Phase 1 & 2 now has a matching [Sigma](https://github.com/SigmaHQ/sigma) rule in [`sigma-rules/`](sigma-rules), so the detection logic in this repo can be converted straight into a real SIEM query instead of staying theoretical.
+
+```bash
+pip install sigma-cli
+sigma convert -t splunk sigma-rules/4625_brute_force.yml
+```
+
+Test the rules against synthetic events before deploying them, using the generator in [`scripts/`](scripts):
+
+```bash
+python3 scripts/generate_test_logs.py --scenario all -o test_logs.jsonl
+```
 
 ---
 
