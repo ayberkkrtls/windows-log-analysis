@@ -1,0 +1,47 @@
+title: Malicious Service Installation for Persistence (7045)
+id: 4d5e6f7a-8b9c-40d1-9e2f-3a4b5c6d7e8f
+status: experimental
+description: |
+  Detects installation of a new Windows service (Event ID 7045) whose
+  ImagePath references LOLBins, an interpreter (PowerShell/cmd/wscript),
+  or a non-standard/writable directory. Commonly used for persistence and
+  privilege escalation.
+references:
+    - https://github.com/ayberkkrtls/windows-log-analysis/blob/main/logs/7045-service-installed.md
+author: ayberkkrtls (windows-log-analysis)
+date: 2026/07/16
+tags:
+    - attack.persistence
+    - attack.privilege_escalation
+    - attack.t1543.003
+logsource:
+    product: windows
+    service: system
+detection:
+    selection:
+        EventID: 7045
+    suspicious_binary:
+        ImagePath|contains:
+            - 'powershell'
+            - 'cmd.exe'
+            - 'mshta'
+            - 'wscript'
+            - 'cscript'
+            - 'rundll32'
+            - 'certutil'
+            - 'bitsadmin'
+    suspicious_path:
+        ImagePath|contains:
+            - 'C:\Temp\'
+            - 'C:\Users\Public\'
+            - '\AppData\'
+    condition: selection and (suspicious_binary or suspicious_path)
+fields:
+    - ServiceName
+    - ImagePath
+    - StartType
+    - AccountName
+falsepositives:
+    - Legitimate third-party agents that install helper services from AppData.
+    - Packaged software using wrapper scripts as the service entry point.
+level: high
